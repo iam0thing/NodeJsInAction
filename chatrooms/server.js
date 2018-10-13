@@ -19,3 +19,45 @@ function sendFile(response,filePath, fileContents){
 
     response.end(fileContents);
 }
+
+function serverStatic(response, cache, absPath){
+    if(cache[absPath]){
+        sendFile(response,absPath, cache[absPath]);
+    }else{
+        fs.exists(absPath, function(exists){
+            if(exists){
+                fs.readFile(absPath, function(err,data){
+                    if(err){
+                        send404(response);
+                    }else{
+                        cache[absPath]=data;
+                        sendFile(response,absPath,data);
+                    }
+                });
+            }else{
+                send404(response);
+            }
+        });
+    
+    }
+}
+
+var server = http.createServer(function(request, response){
+    var filePath = false;
+    if(request.url == '/'){
+        filePath = 'public/index.html';
+        console.log('at path /');
+    }else{
+        filePath = 'public'+request.url;
+    }
+
+    var absPath = './'+filePath;
+    serverStatic(response,cache, absPath);
+});
+
+server.listen(1729, function(){
+    console.log("Server listening on port 1729.");
+});
+
+var chatServer = require('./lib/chat_server');
+chatServer.listen(server);
